@@ -6,6 +6,7 @@ import { WaIcon } from "../components/WaIcon.jsx";
 import Hero from "./Hero.jsx";
 import ProductDialog from "./ProductDialog.jsx";
 import { GENERAL_TEXT, enquiryText, STOCK } from "./shared.js";
+import { trackVisit, trackView, trackEnquiry, trackChat, trackCategory, trackSearch } from "../lib/analytics.js";
 
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.name).localeCompare(b.name);
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
@@ -42,6 +43,15 @@ export default function App() {
   const catsRef = useRef(null);
   const progressRef = useRef(null);
   useReveal();
+
+  // ---------- analytics ----------
+  useEffect(() => { trackVisit(); }, []);
+  const searched = useRef(new Set());
+  useEffect(() => {
+    if (q.length < 3 || searched.current.has(q)) return;
+    const t = setTimeout(() => { searched.current.add(q); trackSearch(q); }, 1500);
+    return () => clearTimeout(t);
+  }, [q]);
 
   // ---------- data ----------
   useEffect(() => {
@@ -117,7 +127,7 @@ export default function App() {
     : [];
 
   function selectCat(id) {
-    setCat(id); setSub(null);
+    setCat(id); setSub(null); trackCategory(id);
     const el = catsRef.current;
     if (!el) return;
     const top = el.getBoundingClientRect().top + scrollY - 90;
@@ -125,6 +135,7 @@ export default function App() {
   }
 
   const openProduct = products.find((p) => p.id === openId) || null;
+  useEffect(() => { if (openProduct) trackView(openProduct.id); }, [openProduct?.id]);
 
   // ---------- grid ----------
   let body;
@@ -137,11 +148,11 @@ export default function App() {
       </div>
     );
   } else if (status === "failed") {
-    body = <Empty>We couldn't load the catalogue just now. <a href={waLink(GENERAL_TEXT)} target="_blank" rel="noopener">Message us on WhatsApp</a> and we'll help directly.</Empty>;
+    body = <Empty>We couldn't load the catalogue just now. <a href={waLink(GENERAL_TEXT)} target="_blank" rel="noopener" onClick={trackChat}>Message us on WhatsApp</a> and we'll help directly.</Empty>;
   } else if (!products.length) {
-    body = <Empty>New stock is being added. In the meantime, <a href={waLink(GENERAL_TEXT)} target="_blank" rel="noopener">tell us what you need</a> on WhatsApp.</Empty>;
+    body = <Empty>New stock is being added. In the meantime, <a href={waLink(GENERAL_TEXT)} target="_blank" rel="noopener" onClick={trackChat}>tell us what you need</a> on WhatsApp.</Empty>;
   } else if (!filtered.length) {
-    body = <Empty>Nothing matches that yet — but we may still have it. <a href={waLink(`Hi ${SITE_NAME}, do you have: ${q || "…"}?`)} target="_blank" rel="noopener">Ask us on WhatsApp</a>.</Empty>;
+    body = <Empty>Nothing matches that yet — but we may still have it. <a href={waLink(`Hi ${SITE_NAME}, do you have: ${q || "…"}?`)} target="_blank" rel="noopener" onClick={trackChat}>Ask us on WhatsApp</a>.</Empty>;
   } else if (cat === "all" && !q) {
     // "All" with no search: one section per category, a preview row each
     const groups = parents
@@ -170,7 +181,7 @@ export default function App() {
     body = <div className="grid">{filtered.map((p, i) => <Card key={p.id} p={p} i={i} catById={catById} />)}</div>;
   }
 
-  const wa = { href: waLink(GENERAL_TEXT), target: "_blank", rel: "noopener" };
+  const wa = { href: waLink(GENERAL_TEXT), target: "_blank", rel: "noopener", onClick: trackChat };
 
   return (
     <>
@@ -218,7 +229,7 @@ export default function App() {
           <div className="chips" role="tablist" ref={catsRef}>
             <Chip label="All" n={products.length} on={cat === "all"} onClick={() => { setCat("all"); setSub(null); }} />
             {withItems.map((c) => (
-              <Chip key={c.id} label={c.name} n={counts.get(c.id)} on={cat === c.id} onClick={() => { setCat(c.id); setSub(null); }} />
+              <Chip key={c.id} label={c.name} n={counts.get(c.id)} on={cat === c.id} onClick={() => { setCat(c.id); setSub(null); trackCategory(c.id); }} />
             ))}
           </div>
         )}
@@ -306,7 +317,7 @@ function Card({ p, i, catById }) {
             {price || "Ask for price"}
             {price && p.oldPrice > p.price && <> <s>{money(p.oldPrice)}</s></>}
           </span>
-          <a className="wa-mini" href={waLink(enquiryText(p))} target="_blank" rel="noopener" aria-label={`Enquire about ${p.name} on WhatsApp`}>
+          <a className="wa-mini" href={waLink(enquiryText(p))} target="_blank" rel="noopener" onClick={() => trackEnquiry(p.id)} aria-label={`Enquire about ${p.name} on WhatsApp`}>
             <WaIcon />Enquire
           </a>
         </div>

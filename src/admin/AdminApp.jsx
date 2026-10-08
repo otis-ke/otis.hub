@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ADMIN_PASS_SHA256 } from "../lib/config.js";
 import { sha256 } from "../lib/util.js";
+import { setTracking } from "../lib/analytics.js";
 import Dashboard from "./Dashboard.jsx";
 
 // Password gate. The password is checked against a SHA-256 hash in config.js,
@@ -31,6 +32,7 @@ function Login({ onOk }) {
     }
     if (hash !== ADMIN_PASS_SHA256) { setState("wrong"); setErr("Wrong password."); return; }
     try { sessionStorage.setItem(KEY, hash); } catch {}
+    setTracking(false); // the admin's own shop visits shouldn't count
     setState("ok");
     setTimeout(onOk, 900);
   };

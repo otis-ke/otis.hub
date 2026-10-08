@@ -5,8 +5,10 @@ import { useLive, useToast, CatOptions, EditIcon, TrashIcon } from "./ui.jsx";
 import Editor from "./Editor.jsx";
 import Categories from "./Categories.jsx";
 import BulkImport from "./BulkImport.jsx";
+import Analytics from "./Analytics.jsx";
 
 const NAV = [
+  { id: "analytics", label: "Analytics", icon: <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg> },
   { id: "products", label: "Products", icon: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg> },
   { id: "categories", label: "Categories", icon: <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6" /></svg> },
   { id: "import", label: "Bulk import", icon: <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg> },
@@ -16,7 +18,7 @@ export default function Dashboard({ onLogout }) {
   const [cats, setCats, catsRef] = useLive([]);
   const [products, setProducts, productsRef] = useLive([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState("products");
+  const [view, setView] = useState("analytics");
   const [filters, setFilters] = useState({ q: "", cat: "", status: "" });
   const [session, setSession] = useState(null); // { product, presetCat, n } while the editor is open
   const [toastNode, toast] = useToast();
@@ -120,6 +122,10 @@ export default function Dashboard({ onLogout }) {
       </aside>
 
       <main className="main">
+        {view === "analytics" && (
+          <Analytics key="analytics" products={products} cats={cats} onEdit={(p) => openEditor(p)} />
+        )}
+
         {view === "products" && (
           <section className="panel" key="products">
             <header className="panel-head">

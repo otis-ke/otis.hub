@@ -7,7 +7,7 @@ A shop website and admin dashboard built with React and Vite. Customers browse p
 | Page | What it is |
 |---|---|
 | `index.html` | Public shop: interactive light-switch hero, categories, search, product gallery with multiple views, WhatsApp enquiry buttons |
-| `admin.html` | Admin dashboard: products, categories and sub-categories, bulk image import |
+| `admin.html` | Admin dashboard: live analytics, products, categories and sub-categories, bulk image import |
 
 ## Run it locally
 
@@ -66,6 +66,18 @@ Paste the output into `ADMIN_PASS_SHA256` in `src/lib/config.js`, then commit an
   from any other app that shares the database.
 - **Images:** Cloudinary, in the `otis-hub/` folder, tagged `otis-hub`.
   Uploads go straight from the browser, with no server.
+
+## Analytics
+
+The shop counts visits, product views, WhatsApp enquiry taps, general chat taps,
+category clicks, searches, traffic sources and mobile vs desktop. Only anonymous
+counters are stored (under `/otishub/stats`), with no cookies or personal data.
+The **Analytics** page in the admin shows them live for the last 7, 30 or 90 days,
+with a table view of the daily numbers.
+
+Signing in to the admin stops counting visits from that browser, so testing
+doesn't inflate the numbers. You can switch this back on at the bottom of the
+Analytics page.
 
 ## Admin cheatsheet
 

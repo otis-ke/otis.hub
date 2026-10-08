@@ -1,7 +1,7 @@
 // Thin data layer over Firebase Realtime Database.
 // Everything lives under /otishub/... so it is completely separate from the
 // other apps in this database (e.g. /pos).
-import { ref, get, push, set, update, remove, serverTimestamp } from "firebase/database";
+import { ref, get, push, set, update, remove, serverTimestamp, increment, onValue } from "firebase/database";
 import { rtdb } from "./firebase.js";
 import { DB_ROOT, SITE_ID } from "./config.js";
 
@@ -31,3 +31,13 @@ export const destroy = (col, id) => remove(ref(rtdb, path(col, id)));
 
 // Atomic multi-path write; keys like "products/<id>/categoryId"
 export const multi = (updates) => update(ref(rtdb, DB_ROOT), updates);
+
+// Analytics: add 1 to each counter path under /otishub/stats (atomic, fire-and-forget)
+export function bump(paths) {
+  const updates = {};
+  for (const p of paths) updates[`stats/${p}`] = increment(1);
+  return update(ref(rtdb, DB_ROOT), updates).catch(() => {});
+}
+
+// Live subscription to a node; returns the unsubscribe function
+export const watch = (col, cb) => onValue(ref(rtdb, path(col)), (s) => cb(s.val() || {}), () => cb({}));

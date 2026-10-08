@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { SITE_NAME } from "../lib/config.js";
 import { img, money, waLink } from "../lib/util.js";
 import { WaIcon } from "../components/WaIcon.jsx";
+import { trackEnquiry } from "../lib/analytics.js";
 import { DEFAULT_TITLE, STOCK, enquiryText, productUrl } from "./shared.js";
 
 export default function ProductDialog({ p, catById, onClose }) {
@@ -80,7 +81,7 @@ export default function ProductDialog({ p, catById, onClose }) {
             {STOCK[p.stock] && <p className={`pd-stock s-${p.stock}`}>{STOCK[p.stock]}</p>}
             {p.description && <div className="pd-desc">{p.description}</div>}
             <div className="pd-actions">
-              <a className="btn btn-wa lg" href={waLink(enquiryText(p))} target="_blank" rel="noopener">
+              <a className="btn btn-wa lg" href={waLink(enquiryText(p))} target="_blank" rel="noopener" onClick={() => trackEnquiry(p.id)}>
                 <WaIcon />Enquire on WhatsApp
               </a>
               <button className="btn btn-line" onClick={share}>{copied ? "Link copied" : "Copy link"}</button>
