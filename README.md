@@ -2,7 +2,7 @@
 
 A shop website and admin dashboard built with React and Vite. Customers browse products and enquire on WhatsApp — there is no checkout.
 
-**Live site:** https://otis-ke.github.io/otis.hub/
+**Live site:** https://otishub.online/
 
 | Page | What it is |
 |---|---|
@@ -22,7 +22,8 @@ npm run preview    # serve the production build locally
 
 ## Deploying
 
-Every push to `main` builds the site and publishes it to GitHub Pages through
+Every push to `main` builds the site and publishes it to GitHub Pages (custom
+domain `otishub.online`, set in the repo's Pages settings) through
 `.github/workflows/deploy.yml`. There is nothing to do by hand.
 
 The build uses relative paths, so `dist/` also works on any other static host
