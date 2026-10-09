@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SITE_NAME } from "../lib/config.js";
-import { img, money, waLink } from "../lib/util.js";
+import { img, money, waLink, slugify, downloadImage } from "../lib/util.js";
 import { WaIcon } from "../components/WaIcon.jsx";
 import { trackEnquiry } from "../lib/analytics.js";
 import { DEFAULT_TITLE, STOCK, enquiryText, productUrl } from "./shared.js";
@@ -9,9 +9,10 @@ export default function ProductDialog({ p, catById, onClose }) {
   const ref = useRef(null);
   const [cur, setCur] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
   const x0 = useRef(null);
 
-  useEffect(() => { setCur(0); setCopied(false); }, [p?.id]);
+  useEffect(() => { setCur(0); setCopied(false); setSaved(false); }, [p?.id]);
 
   useEffect(() => {
     const d = ref.current;
@@ -39,6 +40,13 @@ export default function ProductDialog({ p, catById, onClose }) {
     setCur((c) => (c + (dx < 0 ? 1 : -1) + views.length) % views.length);
   };
 
+  const download = async () => {
+    const name = (slugify(p.name) || "otis-hub-product") + (cur ? `-view-${cur + 1}` : "");
+    await downloadImage(views[cur].url, name);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  };
+
   const share = async () => {
     try { await navigator.clipboard.writeText(productUrl(p)); setCopied(true); }
     catch { prompt("Copy this link:", productUrl(p)); }
@@ -55,6 +63,13 @@ export default function ProductDialog({ p, catById, onClose }) {
           <div className="pd-gallery">
             <div className="pd-stage" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
               <img key={cur} src={img(views[cur]?.url, 1200)} alt={p.name} />
+              <button type="button" className={"pd-dl" + (saved ? " done" : "")} onClick={download}
+                aria-label={saved ? "Photo downloaded" : "Download this photo"} title={saved ? "Downloaded" : "Download photo"}>
+                {saved
+                  ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                  : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" /></svg>}
+                <span>{saved ? "Saved" : "Download"}</span>
+              </button>
             </div>
             <p className="pd-caption">{views[cur]?.label || ""}</p>
             {views.length > 1 && (

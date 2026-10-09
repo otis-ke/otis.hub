@@ -18,6 +18,24 @@ export const waLink = (text) => `https://wa.me/${WHATSAPP}?text=${encodeURICompo
 export const slugify = (s) =>
   String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+// Save an image to the device. Cloudinary images get a real download with a
+// readable filename (fl_attachment); other links are fetched, or opened as a fallback.
+export async function downloadImage(url, name) {
+  const a = document.createElement("a");
+  a.rel = "noopener";
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    a.href = url.replace("/upload/", `/upload/fl_attachment:${name}/`);
+  } else {
+    try {
+      const blob = await (await fetch(url)).blob();
+      a.href = URL.createObjectURL(blob);
+      a.download = name + "." + ((blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg"));
+    } catch { window.open(url, "_blank", "noopener"); return; }
+  }
+  document.body.appendChild(a); a.click(); a.remove();
+  if (a.download) setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
 export const millis = (t) => (typeof t === "number" ? t : 0);
 
 export async function sha256(text) {
