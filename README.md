@@ -67,6 +67,19 @@ Paste the output into `ADMIN_PASS_SHA256` in `src/lib/config.js`, then commit an
 - **Images:** Cloudinary, in the `otis-hub/` folder, tagged `otis-hub`.
   Uploads go straight from the browser, with no server.
 
+## SEO
+
+`npm run build` runs `scripts/seo.mjs` after Vite. It reads the live catalogue and writes a real
+page for every product (`/p/<id>/`) and category (`/c/<slug>/`), each with its own title,
+description, canonical URL, social image and schema.org data (Store, Product, BreadcrumbList,
+ItemList, WebSite search). It also writes `sitemap.xml` (with product images) and `404.html`.
+`robots.txt`, the web manifest, the bulb icons and `og-image.png` are in `public/`.
+
+The deploy workflow also runs every night, so products added in the admin get their own page
+and sitemap entry by the next morning. Search links like `/?q=cable` open the shop with that search,
+and search understands common alternative words (globe → bulb, MCB → breaker, and so on;
+see `SEARCH_GROUPS` in `src/lib/seo.js`).
+
 ## Analytics
 
 The shop counts visits, product views, WhatsApp enquiry taps, general chat taps,

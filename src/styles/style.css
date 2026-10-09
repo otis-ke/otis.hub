@@ -407,3 +407,24 @@ svg { flex-shrink: 0; }
 .rocker .paddle { transition: border-color .3s, box-shadow .3s; }
 .plate-btns { display: flex; gap: 6px; }
 .swatches { justify-content: space-between; }
+
+/* ---------- bulb logo ---------- */
+.brand-bulb { width: 26px; height: 26px; margin: -4px -2px -4px -4px; filter: drop-shadow(0 0 8px rgba(255,181,71,.65)); animation: bulbGlow 3.2s ease-in-out infinite; }
+@keyframes bulbGlow { 50% { filter: drop-shadow(0 0 14px rgba(255,181,71,.95)); } }
+.card h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- what we supply ---------- */
+.supplies { padding: 0 var(--gutter) 100px; }
+.supplies-inner { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 48px; border-top: 1px solid var(--line); padding-top: 72px; }
+.supplies-head h2 { font: 800 clamp(30px, 3.6vw, 48px)/1.02 var(--display); letter-spacing: -.04em; margin: 12px 0 18px; }
+.supplies-head p:not(.eyebrow) { color: var(--muted); max-width: 460px; }
+.supplies-head a { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.supplies-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.supplies-col h3 { font: 700 20px/1.2 var(--display); letter-spacing: -.02em; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.supplies-col ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.supplies-col a { display: inline-block; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 14px; font-weight: 600; transition: all .2s var(--ease); }
+.supplies-col a:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); transform: translateY(-2px); }
+@media (max-width: 860px) {
+  .supplies-inner { grid-template-columns: 1fr; gap: 28px; padding-top: 56px; }
+  .supplies-cols { grid-template-columns: 1fr; }
+}

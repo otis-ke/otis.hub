@@ -5,7 +5,9 @@ import { img, money, waLink, millis, useReveal } from "../lib/util.js";
 import { WaIcon } from "../components/WaIcon.jsx";
 import Hero from "./Hero.jsx";
 import ProductDialog from "./ProductDialog.jsx";
-import { GENERAL_TEXT, enquiryText, STOCK } from "./shared.js";
+import { GENERAL_TEXT, DEFAULT_TITLE, enquiryText, STOCK } from "./shared.js";
+import { BulbMark } from "../components/BulbMark.jsx";
+import { MATERIALS, catPath, catSlug, matchesQuery, parsePath, productPath } from "../lib/seo.js";
 import { trackVisit, trackView, trackEnquiry, trackChat, trackCategory, trackSearch } from "../lib/analytics.js";
 
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.name).localeCompare(b.name);
@@ -36,7 +38,7 @@ export default function App() {
   const [status, setStatus] = useState("loading"); // loading | ready | failed
   const [cat, setCat] = useState("all");
   const [sub, setSub] = useState(null);
-  const [qInput, setQInput] = useState("");
+  const [qInput, setQInput] = useState(() => new URLSearchParams(location.search).get("q") || "");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState(null);
   const [scrolled, setScrolled] = useState(false);
@@ -84,15 +86,38 @@ export default function App() {
     return () => removeEventListener("scroll", onScroll);
   }, []);
 
-  // ---------- product links (#p=<id>) ----------
+  // ---------- URLs: /p/<id>/ opens a product, /c/<slug>/ opens a category ----------
+  const returnPath = useRef("/");
+  const [pendingCat, setPendingCat] = useState(null);
   useEffect(() => {
-    const read = () => { const m = location.hash.match(/^#p=(.+)$/); setOpenId(m ? m[1] : null); };
+    const read = () => {
+      const legacy = location.hash.match(/^#p=(.+)$/);
+      if (legacy) history.replaceState(null, "", productPath(legacy[1]));
+      const r = parsePath(location.pathname);
+      setOpenId(r.productId || null);
+      if (r.catSlug) setPendingCat(r.catSlug);
+      else if (!r.productId) setPendingCat("");
+    };
     read();
+    addEventListener("popstate", read);
     addEventListener("hashchange", read);
-    return () => removeEventListener("hashchange", read);
+    return () => { removeEventListener("popstate", read); removeEventListener("hashchange", read); };
   }, []);
+  useEffect(() => {
+    if (pendingCat === null || !cats.length) return;
+    const c = pendingCat ? cats.find((x) => catSlug(x) === pendingCat && !x.parent) : null;
+    setCat(c ? c.id : "all"); setSub(null);
+    if (c) document.title = `${c.name} in Kenya | Otis Hub`;
+    setPendingCat(null);
+  }, [pendingCat, cats]);
+
+  const openProductById = (id) => {
+    if (!parsePath(location.pathname).productId) returnPath.current = location.pathname + location.search;
+    history.pushState(null, "", productPath(id));
+    setOpenId(id);
+  };
   const closeProduct = () => {
-    if (location.hash.startsWith("#p=")) history.replaceState(null, "", location.pathname + location.search);
+    if (parsePath(location.pathname).productId) history.replaceState(null, "", returnPath.current || "/");
     setOpenId(null);
   };
 
@@ -116,8 +141,8 @@ export default function App() {
     if (cat !== "all" && p.categoryId !== cat) return false;
     if (sub && p.subcategoryId !== sub) return false;
     if (q) {
-      const hay = [p.name, p.code, p.description, catById.get(p.categoryId)?.name, catById.get(p.subcategoryId)?.name].join(" ").toLowerCase();
-      return q.split(/\s+/).every((w) => hay.includes(w));
+      const hay = [p.name, p.code, p.description, catById.get(p.categoryId)?.name, catById.get(p.subcategoryId)?.name].join(" ");
+      return matchesQuery(hay, q);
     }
     return true;
   }), [products, cat, sub, q, catById]);
@@ -126,8 +151,21 @@ export default function App() {
     ? cats.filter((c) => c.parent === cat && products.some((p) => p.subcategoryId === c.id))
     : [];
 
+  function setCatUrl(id) {
+    const c = catById.get(id);
+    history.replaceState(null, "", c ? catPath(c) : "/");
+    document.title = c ? `${c.name} in Kenya | Otis Hub` : DEFAULT_TITLE;
+  }
+  function chooseCat(id) {
+    setCat(id); setSub(null); setCatUrl(id);
+    if (id !== "all") trackCategory(id);
+  }
+  function searchFor(term) {
+    setQInput(term); setCat("all"); setSub(null); setCatUrl("all");
+    document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
+  }
   function selectCat(id) {
-    setCat(id); setSub(null); trackCategory(id);
+    chooseCat(id);
     const el = catsRef.current;
     if (!el) return;
     const top = el.getBoundingClientRect().top + scrollY - 90;
@@ -160,10 +198,12 @@ export default function App() {
       .filter((g) => g.items.length);
     const loose = filtered.filter((p) => !catById.get(p.categoryId));
     if (loose.length) groups.push({ c: { id: "", name: "More products" }, items: loose });
+    const featured = filtered.filter((p) => p.featured);
+    if (featured.length) groups.unshift({ c: { id: "", key: "featured", name: "Featured" }, items: featured });
     body = (
       <div className="sections">
         {groups.map(({ c, items }) => (
-          <section className="cat-sec" key={c.id || "loose"}>
+          <section className="cat-sec" key={c.key || c.id || "loose"}>
             <header className="reveal">
               <h3>{c.name} <small>{items.length}</small></h3>
               {c.id && items.length > PREVIEW && (
@@ -171,14 +211,14 @@ export default function App() {
               )}
             </header>
             <div className="grid">
-              {items.slice(0, PREVIEW).map((p, i) => <Card key={p.id} p={p} i={i} catById={catById} />)}
+              {items.slice(0, PREVIEW).map((p, i) => <Card key={p.id} p={p} i={i} catById={catById} onOpen={openProductById} />)}
             </div>
           </section>
         ))}
       </div>
     );
   } else {
-    body = <div className="grid">{filtered.map((p, i) => <Card key={p.id} p={p} i={i} catById={catById} />)}</div>;
+    body = <div className="grid">{filtered.map((p, i) => <Card key={p.id} p={p} i={i} catById={catById} onOpen={openProductById} />)}</div>;
   }
 
   const wa = { href: waLink(GENERAL_TEXT), target: "_blank", rel: "noopener", onClick: trackChat };
@@ -188,9 +228,10 @@ export default function App() {
       <div className="progress" ref={progressRef} aria-hidden="true"></div>
 
       <header className={"nav" + (scrolled ? " scrolled" : "")}>
-        <a className="brand" href="#top"><span className="brand-dot"></span>Otis Hub</a>
+        <a className="brand" href="#top"><BulbMark className="brand-bulb" />Otis Hub</a>
         <nav className="nav-links">
           <a href="#shop">Shop</a>
+          <a href="#supplies">What we supply</a>
           <a href="#how">How it works</a>
         </nav>
         <a className="btn btn-wa sm" {...wa}><WaIcon /><span>Chat</span></a>
@@ -206,7 +247,7 @@ export default function App() {
           </div>
           <label className="search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input type="search" placeholder="Search chandeliers, pendants, bulbs…" autoComplete="off"
+            <input type="search" placeholder="Search lights, cables, switches, breakers…" aria-label="Search products" autoComplete="off"
               value={qInput} onChange={(e) => setQInput(e.target.value)} />
           </label>
         </div>
@@ -216,10 +257,10 @@ export default function App() {
             {withItems.map((c, i) => {
               const cover = c.cover || products.find((p) => p.categoryId === c.id)?.mainImage;
               return (
-                <button className={"tile reveal" + (cat === c.id ? " on" : "")} key={c.id} style={{ "--d": `${i * 45}ms` }} onClick={() => selectCat(c.id)}>
-                  <img src={img(cover, 500)} alt="" loading="lazy" />
+                <a href={catPath(c)} className={"tile reveal" + (cat === c.id ? " on" : "")} key={c.id} style={{ "--d": `${i * 45}ms` }} onClick={(e) => { e.preventDefault(); selectCat(c.id); }}>
+                  <img src={img(cover, 500)} alt={`${c.name} in Kenya`} loading="lazy" />
                   <span className="tile-txt"><b>{c.name}</b><small>{counts.get(c.id)} items</small></span>
-                </button>
+                </a>
               );
             })}
           </div>
@@ -227,9 +268,9 @@ export default function App() {
 
         {products.length > 0 && (
           <div className="chips" role="tablist" ref={catsRef}>
-            <Chip label="All" n={products.length} on={cat === "all"} onClick={() => { setCat("all"); setSub(null); }} />
+            <Chip label="All" n={products.length} on={cat === "all"} onClick={() => chooseCat("all")} />
             {withItems.map((c) => (
-              <Chip key={c.id} label={c.name} n={counts.get(c.id)} on={cat === c.id} onClick={() => { setCat(c.id); setSub(null); trackCategory(c.id); }} />
+              <Chip key={c.id} label={c.name} n={counts.get(c.id)} on={cat === c.id} onClick={() => chooseCat(c.id)} />
             ))}
           </div>
         )}
@@ -242,6 +283,28 @@ export default function App() {
 
         <div key={`${cat}|${sub}|${q}`} className="grid-wrap">{body}</div>
       </main>
+
+      <section className="supplies" id="supplies">
+        <div className="supplies-inner">
+          <div className="supplies-head reveal">
+            <p className="eyebrow dark">What we supply</p>
+            <h2>Lighting &amp; electrical supplies in Kenya</h2>
+            <p>From statement chandeliers and pendant lights to downlighters, LED panels, bulbs, cables, switches and breakers, for homes, shops, offices and contractors. Tap anything below to search the catalogue. If it isn&apos;t listed, <a {...wa}>ask us on WhatsApp</a>.</p>
+          </div>
+          <div className="supplies-cols">
+            {MATERIALS.map((g, gi) => (
+              <div className="supplies-col reveal" key={g.title} style={{ "--d": `${gi * 120}ms` }}>
+                <h3>{g.title}</h3>
+                <ul>
+                  {g.items.map(([label, term]) => (
+                    <li key={label}><a href={`/?q=${encodeURIComponent(term)}`} onClick={(e) => { e.preventDefault(); searchFor(term); }}>{label}</a></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="how" id="how">
         <div className="how-inner">
@@ -264,8 +327,8 @@ export default function App() {
       <footer className="foot">
         <div className="foot-inner reveal">
           <div>
-            <a className="brand" href="#top"><span className="brand-dot"></span>Otis Hub</a>
-            <p>Lighting &amp; electrical materials.</p>
+            <a className="brand" href="#top"><BulbMark className="brand-bulb" />Otis Hub</a>
+            <p>Lighting &amp; electrical materials, Kenya.</p>
           </div>
           <div className="foot-contact">
             <p className="eyebrow">Orders &amp; enquiries</p>
@@ -294,24 +357,25 @@ function Empty({ children }) {
   return <div className="empty">{children}</div>;
 }
 
-function Card({ p, i, catById }) {
+function Card({ p, i, catById, onOpen }) {
   const price = money(p.price);
   const cat = catById.get(p.subcategoryId) || catById.get(p.categoryId);
   const extra = (p.images || []).length;
-  const open = () => { location.hash = "p=" + p.id; };
+  const href = productPath(p.id);
+  const open = (e) => { e.preventDefault(); onOpen(p.id); };
   const badge = p.stock && p.stock !== "in" && STOCK[p.stock]
     ? <span className={`badge s-${p.stock}`}>{STOCK[p.stock]}</span>
     : p.featured ? <span className="badge">Featured</span> : null;
   return (
     <article className="card reveal" style={{ "--d": `${(i % 4) * 70}ms` }}>
-      <button className="card-media" onClick={open} aria-label={`View ${p.name}`}>
+      <a className="card-media" href={href} onClick={open} aria-label={`View ${p.name}`}>
         <img src={img(p.mainImage, 600)} alt={p.name} loading="lazy" />
         {badge}
         {extra > 0 && <span className="views">+{extra} view{extra > 1 ? "s" : ""}</span>}
-      </button>
+      </a>
       <div className="card-body">
         {cat && <span className="tag">{cat.name}</span>}
-        <h3><button onClick={open}>{p.name}</button></h3>
+        <h3><a href={href} onClick={open}>{p.name}</a></h3>
         <div className="card-foot">
           <span className={"price" + (price ? "" : " ask")}>
             {price || "Ask for price"}

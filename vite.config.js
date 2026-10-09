@@ -3,10 +3,10 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
 // Two pages: the shop (index.html) and the admin dashboard (admin.html).
-// base "./" makes every asset path relative, so the build works on
-// GitHub Pages (https://<user>.github.io/<repo>/) or any other static host.
+// base "/" because the site is served from the root of otishub.online;
+// pages like /p/<id>/ and /c/<slug>/ need absolute asset paths.
 export default defineConfig({
-  base: "./",
+  base: "/",
   plugins: [react()],
   build: {
     rollupOptions: {

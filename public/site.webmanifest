@@ -1,0 +1,14 @@
+{
+  "name": "Otis Hub — Lights & Electrical Supplies",
+  "short_name": "Otis Hub",
+  "description": "Lighting and electrical supplies in Kenya. Order on WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121211",
+  "theme_color": "#121211",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

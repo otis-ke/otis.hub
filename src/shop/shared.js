@@ -1,10 +1,11 @@
 import { SITE_NAME } from "../lib/config.js";
 import { money } from "../lib/util.js";
+import { SITE_TITLE, productPath } from "../lib/seo.js";
 
 export const GENERAL_TEXT = `Hi ${SITE_NAME}, I'm enquiring about your lighting and electrical products.`;
-export const DEFAULT_TITLE = `${SITE_NAME} — Lighting & Electrical Supplies`;
+export const DEFAULT_TITLE = SITE_TITLE;
 
-export const productUrl = (p) => `${location.origin}${location.pathname}#p=${p.id}`;
+export const productUrl = (p) => `${location.origin}${productPath(p.id)}`;
 
 export const enquiryText = (p) => {
   const price = money(p.price);

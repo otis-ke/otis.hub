@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # rebuild daily so products added in the admin get their own page + sitemap entry
+    - cron: "30 0 * * *"   # 03:30 Nairobi time
 
 permissions:
   contents: read
